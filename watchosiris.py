@@ -235,7 +235,7 @@ def watch(notify):
             print('Done, waiting..')
             print()
 
-            time.sleep(30)
+            time.sleep(300) # 5 minutes
     except KeyboardInterrupt:
         print('Manual break by user')
 
