@@ -2,6 +2,10 @@
 
 Annoyed by the lack of email notifications of our Osiris student system and wanting to get some more experience with Python programming, I decided to create this tool to read your grades out of Osiris.
 
+#### Dependencies
+
+Tested on Python 3, requires: `click`, `requests`, `pandas`, `numpy`, `beautifulsoup4` as imports (you can install them through `pip` or as part of Anaconda, they are all included automatically).
+
 #### Disclaimer
 
 As Osiris provides no official API for getting the data, this kinda hacks its way to it. It requires you to give your username and password to enter into the forms on the way, however it does work fully automatically.
