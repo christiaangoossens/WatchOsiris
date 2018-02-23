@@ -93,13 +93,16 @@ def login(debug = False):
 
 # Get cijfers
 def getCijfers(debug = False):
-    login(debug)
     p = s.get(os_full + 'ToonResultaten.do')
     page = bs(p.text, 'html.parser')
+	
+    if (page.find('title').text != 'OSIRIS - Resultaten'):
+       login(debug)
+       p = s.get(os_full + 'ToonResultaten.do')
+       page = bs(p.text, 'html.parser')
 
     table = page.find('table', {'class': 'OraTableContent'})
     rows = table.find_all('tr')
-
     cijfers = [];
 
     for row in rows:
