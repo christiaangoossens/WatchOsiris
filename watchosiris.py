@@ -30,6 +30,8 @@ smtp_password = 'some-password'
 from_mail = 'your-email'
 to_mail = 'your-email'
 
+file = 'grades.csv' 
+
 ############# PRESET VARIABLES ###############
 # Don't edit these unless necessary
 
@@ -48,29 +50,34 @@ def login(debug = False):
     r = s.get(os_home)
     page = bs(r.text, 'html.parser')
 
-    authForm = page.find(id='loginArea').form
-    adfsUrl = 'https://sts.tue.nl' + authForm.get('action')
+    # DEFAULT ADFS LOGIN PAGE
+    if (page.find('title').text == 'Sign In'):
+        authForm = page.find(id='loginArea').form
+        adfsUrl = 'https://sts.tue.nl' + authForm.get('action')
 
-    payload = {'UserName': 'TUe\\' + userId, 'Password': password, 'AuthMethod': 'FormsAuthentication'}
-    p = s.post(adfsUrl, data=payload)
+        payload = {'UserName': 'TUe\\' + userId, 'Password': password, 'AuthMethod': 'FormsAuthentication'}
+        p = s.post(adfsUrl, data=payload)
 
-    pRes = bs(p.text, 'html.parser')
-    if (pRes.find(id='errorText') != None):
-        print(pRes.find(id='errorText').text)
-        exit()
+        page = bs(p.text, 'html.parser')
+        if (page.find(id='errorText') != None):
+                print(page.find(id='errorText').text)
+                exit()
 
-    # Success? Then we post to Osiris
-    if (pRes.body.form.get('action') != saml_rp_url):
-        print("No, something went wrong with ADFS, the page was incorrect.")
-        exit()
+        # Success? Then we post to Osiris
+        if (page.body.form.get('action') != saml_rp_url):
+                print("No, something went wrong with ADFS, the page was incorrect.")
+                exit()
+    
+    # ADFS FORM POST REDIRECT PAGE
+    if (page.find('title').text == 'Working...'):
+        samlResponse = page.find('input', {'name': 'SAMLResponse'}).get('value')
+        relayState = page.find('input', {'name': 'RelayState'}).get('value')
 
-    samlResponse = pRes.find('input', {'name': 'SAMLResponse'}).get('value')
-    relayState = pRes.find('input', {'name': 'RelayState'}).get('value')
-
-    payload = {'SAMLResponse': samlResponse, 'RelayState': relayState }
-    o = s.post(saml_rp_url, data=payload)
+        payload = {'SAMLResponse': samlResponse, 'RelayState': relayState }
+        o = s.post(saml_rp_url, data=payload)
 
     # If this succeeds, we're in!
+    o = s.get(os_home)
     op = bs(o.text, 'html.parser')
 
     if (op.find('title').text != 'OSIRIS - Personalia'):
@@ -141,21 +148,21 @@ def getCijfers(debug = False):
     return df
 
 def saveCijfers(df):
-    if os.path.isfile('grades.csv'):
+    if os.path.isfile(file):
         try:
-            old_df = pd.read_csv('grades.csv')
+            old_df = pd.read_csv(file)
             concat_df = pd.concat([df, old_df]).drop_duplicates().reset_index(drop=True)
-            concat_df.to_csv('grades.csv', index=False, quoting=csv.QUOTE_NONNUMERIC)
+            concat_df.to_csv(file, index=False, quoting=csv.QUOTE_NONNUMERIC)
         except pd.errors.EmptyDataError:
-            df.to_csv('grades.csv', index=False, quoting=csv.QUOTE_NONNUMERIC)
+            df.to_csv(file, index=False, quoting=csv.QUOTE_NONNUMERIC)
 
     else:
-        df.to_csv('grades.csv', index=False, quoting=csv.QUOTE_NONNUMERIC)
+        df.to_csv(file, index=False, quoting=csv.QUOTE_NONNUMERIC)
 
     print("Saved grades to disk")
 
 def detectNew(df):
-    old_df = pd.read_csv('grades.csv')
+    old_df = pd.read_csv(file)
     concat_df = pd.concat([df, old_df]).drop_duplicates().reset_index(drop=True)
     newRows = []
 
@@ -212,7 +219,7 @@ def cli():
 def watch(notify):
     """Watch Osiris for changes and save changes to disk."""
 
-    if not os.path.isfile('grades.csv'):
+    if not os.path.isfile(file):
         print("Please run the get command first to get the initial data and test if everything is alright")
         exit()
 
@@ -249,11 +256,11 @@ def testNotify():
 def lookup():
     """Returns saved CSV data in a table."""
 
-    if not os.path.isfile('grades.csv'):
+    if not os.path.isfile(file):
         print("No data found")
         exit()
 
-    df = pd.read_csv('grades.csv')
+    df = pd.read_csv(file)
     print(df)
 
 # GET
