@@ -61,12 +61,12 @@ def login(debug = False):
         page = bs(p.text, 'html.parser')
         if (page.find(id='errorText') != None):
                 print(page.find(id='errorText').text)
-                exit()
+                return
 
         # Success? Then we post to Osiris
         if (page.body.form.get('action') != saml_rp_url):
                 print("No, something went wrong with ADFS, the page was incorrect.")
-                exit()
+                return
     
     # ADFS FORM POST REDIRECT PAGE
     if (page.find('title').text == 'Working...'):
@@ -82,7 +82,7 @@ def login(debug = False):
 
     if (op.find('title').text != 'OSIRIS - Personalia'):
         print('Failed getting OSIRIS, something went wrong')
-        exit()
+        return
 
     # We're in!
     tableValues = op.findAll('span', {'class':'psbTekst'})
@@ -180,6 +180,17 @@ def detectNew(df):
 
 # Notify
 def sendNotifications(grades):
+    for grade in grades:
+        body = "You got a new grade for " + grade[0] + ": " + grade[1] + ", with the subject of: <i>" + grade[6] + "</i> and a weight of: " + str(grade[7]) + ". You got the following grade: <b>" + grade[4] + "</b>"
+        subject = "You got a new grade for " + grade[0]        
+        mail(subject, body)
+
+    print('Notifications sent!')
+
+def sendErrorNotice(error):
+    mail("Encountered error", "The error was: " + error)
+
+def mail(subject, body):
     # Send an email
     if smtp_password == 'some-password':
         print("SMTP credentials not found, not sending notification!")
@@ -191,21 +202,16 @@ def sendNotifications(grades):
     server.ehlo()
     server.login(smtp_username, smtp_password)
 
-    for grade in grades:
-        body = "You got a new grade for " + grade[0] + ": " + grade[1] + ", with the subject of: <i>" + grade[6] + "</i> and a weight of: " + str(grade[7]) + ". You got the following grade: <b>" + grade[4] + "</b>"
-        msg = MIMEText(body, 'html');
+    msg = MIMEText(body, 'html');
 
-        msg['From'] = 'WatchOsiris <' + from_mail + '>'
-        msg['To'] = to_mail
-        msg['Subject'] = "You got a new grade for " + grade[0]
-        msg["Date"] = email.utils.formatdate()
+    msg['From'] = 'WatchOsiris <' + from_mail + '>'
+    msg['To'] = to_mail
+    msg['Subject'] = subject
+    msg["Date"] = email.utils.formatdate()
 
-        msg_full = msg.as_string()
+    msg_full = msg.as_string()
 
-        server.sendmail(from_mail, to_mail, msg_full)
-
-    print('Notifications sent!')
-
+    server.sendmail(from_mail, to_mail, msg_full)
 
 ############# START OF PROGRAM ###############
 
@@ -221,27 +227,34 @@ def watch(notify):
 
     if not os.path.isfile(file):
         print("Please run the get command first to get the initial data and test if everything is alright")
-        exit()
+        return
 
     try:
         while True:
-            # Contact Osiris and get changes to save them
-            print('Contacting Osiris for changes.')
-            df = getCijfers()
+            try:
+                # Contact Osiris and get changes to save them
+                print('Contacting Osiris for changes.')
+                df = getCijfers()
 
-            if (notify):
-                newRows = detectNew(df)
-                print('Checking for differences: ', newRows)
+                if (notify):
+                    newRows = detectNew(df)
+                    print('Checking for differences: ', newRows)
 
-                if (len(newRows) > 0):
-                    print("Found differences, sending notifications! ;)")
-                    sendNotifications(newRows)
+                    if (len(newRows) > 0):
+                        print("Found differences, sending notifications! ;)")
+                        sendNotifications(newRows)
 
-            saveCijfers(df)
+                saveCijfers(df)
 
-            print('Done, waiting..')
-            print()
-
+                print('Done, waiting..')
+                print()
+            except Exception as e:
+                print('Something failed')
+                sendErrorNotice(repr(e))
+                
+                # Reset session
+                s = req.Session()
+            
             time.sleep(300) # 5 minutes
     except KeyboardInterrupt:
         print('Manual break by user')
@@ -258,7 +271,7 @@ def lookup():
 
     if not os.path.isfile(file):
         print("No data found")
-        exit()
+        return
 
     df = pd.read_csv(file)
     print(df)
