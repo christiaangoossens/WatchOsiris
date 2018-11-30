@@ -49,6 +49,15 @@ def login(debug = False):
     # This should go out to ADFS for signin
     r = s.get(os_home)
     page = bs(r.text, 'html.parser')
+    
+    #Extra page with maintenance notification
+    if (page.find('title').text == 'OSIRIS - Inloggen'):
+        authForm = page.find(id='loginForm')
+        adfsUrl = 'https://osiris.tue.nl/osiris_student_tueprd/' + authForm.get('action')
+        token = page.find(id='requestToken').get('value')
+        payload = {'startUrl': 'Personalia.do', 'inPortal': '', 'callDirect': '', 'requestToken': token, 'event': 'login'}
+        p = s.post(adfsUrl, data=payload)
+        page = bs(p.text, 'html.parser')
 
     # DEFAULT ADFS LOGIN PAGE
     if (page.find('title').text == 'Sign In'):
@@ -77,7 +86,8 @@ def login(debug = False):
         o = s.post(saml_rp_url, data=payload)
 
     # If this succeeds, we're in!
-    o = s.get(os_home)
+    # do not get main url because it redirect to the maintenance notification
+    o = s.get(os_full + 'ToonPersonalia.do')
     op = bs(o.text, 'html.parser')
 
     if (op.find('title').text != 'OSIRIS - Personalia'):

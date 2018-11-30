@@ -17,4 +17,7 @@ I am not taking responsibility for keeping this tool updated, but I may still do
 Tool by:
 **Christiaan Goossens**
 
+Contributions:
+**Roy van Schaijk**
+
 This tool has no official link to the TU/e, nor does it claim it has any approval of any board at the TU/e. It's just a fun Friday project.
