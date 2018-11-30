@@ -49,11 +49,17 @@ def login(debug = False):
     # This should go out to ADFS for signin
     r = s.get(os_home)
     page = bs(r.text, 'html.parser')
+
+    # If timeout
+    if (page.find('title').text == 'OSIRIS - Timeout'):
+    	s = req.Session()
+	r = s.get(os_home)
+    	page = bs(r.text, 'html.parser')
     
-    #Extra page with maintenance notification
+    # Extra page with maintenance notification
     if (page.find('title').text == 'OSIRIS - Inloggen'):
         authForm = page.find(id='loginForm')
-        adfsUrl = 'https://osiris.tue.nl/osiris_student_tueprd/' + authForm.get('action')
+        adfsUrl = os_full + authForm.get('action')
         token = page.find(id='requestToken').get('value')
         payload = {'startUrl': 'Personalia.do', 'inPortal': '', 'callDirect': '', 'requestToken': token, 'event': 'login'}
         p = s.post(adfsUrl, data=payload)
