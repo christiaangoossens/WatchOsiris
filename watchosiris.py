@@ -47,6 +47,7 @@ pd.set_option('display.expand_frame_repr', False)
 # Login with ADFS
 def login(debug = False):
     # This should go out to ADFS for signin
+    global s
     r = s.get(os_home)
     page = bs(r.text, 'html.parser')
 
