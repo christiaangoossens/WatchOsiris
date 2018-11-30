@@ -52,9 +52,9 @@ def login(debug = False):
 
     # If timeout
     if (page.find('title').text == 'OSIRIS - Timeout'):
-    	s = req.Session()
-	r = s.get(os_home)
-    	page = bs(r.text, 'html.parser')
+        s = req.Session()
+        r = s.get(os_home)
+        page = bs(r.text, 'html.parser')
     
     # Extra page with maintenance notification
     if (page.find('title').text == 'OSIRIS - Inloggen'):
